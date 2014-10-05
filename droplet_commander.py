@@ -19,9 +19,23 @@ class DropletCommander(QtWidgets.QMainWindow, main_ui):
         self.setupUi(self)
         self.btnSaveApiKey.clicked.connect(self.save_api_key)
         self.actionQuit.triggered.connect(self.quit)
+        self.actionStart.triggered.connect(self.start_droplet)
+        self.actionStop.triggered.connect(self.stop_droplet)
+        self.actionReboot.triggered.connect(self.reboot_droplet)
+
+
+        
+
         self.treeDroplets.expanded.connect(self.resizeColumnToContents)
         self.treeDroplets.collapsed.connect(self.resizeColumnToContents)
-        self.treeDroplets.clicked.connect(self.copy_droplet_id)
+        self.treeDroplets.customContextMenuRequested.connect(self.show_context_menu)
+        
+        #Setup context menu for the droplets
+        self.context_menu = QtWidgets.QMenu()
+        self.context_menu.addAction(self.actionStart)
+        self.context_menu.addAction(self.actionStop)
+        self.context_menu.addAction(self.actionReboot)
+
         #Load the api key into the text box
         self.load_api_key()
 
@@ -31,12 +45,15 @@ class DropletCommander(QtWidgets.QMainWindow, main_ui):
         #Populate TreeWidget with droplet info
         self.list_droplets(DropletCommander.manager.get_all_droplets())
 
+    def get_manager(self):
+        pass
+
     def save_api_key(self):
         key = self.txtApiKey.text()
         if key:
             with open("apiKey.txt", "wt") as outfile:
                 outfile.write(key)
-            self.ustatusbar.showMessage("Api key saved")
+            self.statusbar.showMessage("Api key saved")
 
     def load_api_key(self):
         try:
@@ -71,7 +88,7 @@ class DropletCommander(QtWidgets.QMainWindow, main_ui):
                 item.setIcon(0, QtGui.QIcon("res/ok.png"))
             else:
                 item.setIcon(0, QtGui.QIcon("res/fail.png"))
-            
+                        
             items.append(item)
 
         self.treeDroplets.addTopLevelItems(items)
@@ -79,12 +96,35 @@ class DropletCommander(QtWidgets.QMainWindow, main_ui):
         #Adapt IP address column to content 
         self.treeDroplets.resizeColumnToContents(1)
 
-    def copy_droplet_id(self, hej):
+    def show_context_menu(self, pos):
+        pos = QtGui.QCursor.pos()
+        pos.setX(pos.x() + 10)
+        print(self.treeDroplets.currentItem().child(1).text(0))
+        if self.treeDroplets.currentItem().child(1).text(0) == "Status: active":
+            self.context_menu.actions()[0].setEnabled(False)
+        else:
+            self.context_menu.actions()[0].setEnabled(True)
+        self.context_menu.exec_(pos)
+
+    def get_droplet_id(self):
         self.item = self.treeDroplets.currentItem()
         if not self.item.parent():
             self.id = self.item.child(0).text(0)
+            #Get only the droplet ID. So, cut off the label.
             self.id = self.id[4:]
-            print(self.id)
+            #print(self.id)
+            return self.id
+
+    def start_droplet(self):
+        print("Starting " + self.get_droplet_id())
+        DropletCommander.manager.
+
+    def stop_droplet(self):
+        pass
+
+    def reboot_droplet(self):
+        pass
+
 
     def resizeColumnToContents(self):
         self.treeDroplets.resizeColumnToContents(0)
