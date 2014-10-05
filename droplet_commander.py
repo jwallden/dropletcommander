@@ -1,24 +1,27 @@
 #!/usr/bin/python
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtCore, QtGui, QtWidgets, uic
 import digitalocean
 import sys
 import dcui
 
-class DropletCommander(QtWidgets.QMainWindow):
+main_ui = uic.loadUiType("DropletCommander.ui")[0]
+
+
+class DropletCommander(QtWidgets.QMainWindow, main_ui):
     
     apikey = ""
     manager = ""
 
     def __init__(self, parent=None):
         QtWidgets.QMainWindow.__init__(self, parent)
-        self.ui = dcui.Ui_MainWindow()
-        self.ui.setupUi(self)
-        self.ui.btnSaveApiKey.clicked.connect(self.save_api_key)
-        self.ui.actionQuit.triggered.connect(self.quit)
-        self.ui.treeDroplets.expanded.connect(self.resizeColumnToContents)
-        self.ui.treeDroplets.collapsed.connect(self.resizeColumnToContents)
-        self.ui.treeDroplets.clicked.connect(self.copy_droplet_id)
+        #self.ui = dcui.Ui_MainWindow()
+        self.setupUi(self)
+        self.btnSaveApiKey.clicked.connect(self.save_api_key)
+        self.actionQuit.triggered.connect(self.quit)
+        self.treeDroplets.expanded.connect(self.resizeColumnToContents)
+        self.treeDroplets.collapsed.connect(self.resizeColumnToContents)
+        self.treeDroplets.clicked.connect(self.copy_droplet_id)
         #Load the api key into the text box
         self.load_api_key()
 
@@ -29,17 +32,17 @@ class DropletCommander(QtWidgets.QMainWindow):
         self.list_droplets(DropletCommander.manager.get_all_droplets())
 
     def save_api_key(self):
-        key = self.ui.txtApiKey.text()
+        key = self.txtApiKey.text()
         if key:
             with open("apiKey.txt", "wt") as outfile:
                 outfile.write(key)
-            self.ui.statusbar.showMessage("Api key saved")
+            self.ustatusbar.showMessage("Api key saved")
 
     def load_api_key(self):
         try:
             with open("apiKey.txt", "rt") as infile:
                 DropletCommander.apikey = infile.read()
-                self.ui.txtApiKey.setText(DropletCommander.apikey)
+                self.txtApiKey.setText(DropletCommander.apikey)
         except OSError:
             pass
 
@@ -47,7 +50,7 @@ class DropletCommander(QtWidgets.QMainWindow):
         items = []
         
         for droplet in droplets:
-            item = QtWidgets.QTreeWidgetItem([ddroplet.name, droplet.ip_address,\
+            item = QtWidgets.QTreeWidgetItem([droplet.name, droplet.ip_address,\
              droplet.region["name"]])
             
             item.addChild(QtWidgets.QTreeWidgetItem(["ID: " + str(droplet.id)]))
@@ -71,20 +74,20 @@ class DropletCommander(QtWidgets.QMainWindow):
             
             items.append(item)
 
-        self.ui.treeDroplets.addTopLevelItems(items)
+        self.treeDroplets.addTopLevelItems(items)
 
         #Adapt IP address column to content 
-        self.ui.treeDroplets.resizeColumnToContents(1)
+        self.treeDroplets.resizeColumnToContents(1)
 
     def copy_droplet_id(self, hej):
-        self.item = self.ui.treeDroplets.currentItem()
+        self.item = self.treeDroplets.currentItem()
         if not self.item.parent():
             self.id = self.item.child(0).text(0)
             self.id = self.id[4:]
             print(self.id)
 
     def resizeColumnToContents(self):
-        self.ui.treeDroplets.resizeColumnToContents(0)
+        self.treeDroplets.resizeColumnToContents(0)
 
 
     def quit(self):
