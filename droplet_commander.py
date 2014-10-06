@@ -16,20 +16,20 @@ class DropletCommander(QtWidgets.QMainWindow, main_ui):
     def __init__(self, parent=None):
         QtWidgets.QMainWindow.__init__(self, parent)
         #self.ui = dcui.Ui_MainWindow()
+        #Setup signal and slots
         self.setupUi(self)
         self.btnSaveApiKey.clicked.connect(self.save_api_key)
+        self.treeDroplets.expanded.connect(self.resizeColumnToContents)
+        self.treeDroplets.collapsed.connect(self.resizeColumnToContents)
+        self.treeDroplets.customContextMenuRequested.connect(self.show_context_menu)
+        self.btnRefresh.clicked.connect(self.reload_droplet_tree)
+        self.btnId.clicked.connect(self.get_droplet_id)
         self.actionQuit.triggered.connect(self.quit)
         self.actionStart.triggered.connect(self.start_droplet)
         self.actionStop.triggered.connect(self.stop_droplet)
         self.actionReboot.triggered.connect(self.reboot_droplet)
 
 
-        
-
-        self.treeDroplets.expanded.connect(self.resizeColumnToContents)
-        self.treeDroplets.collapsed.connect(self.resizeColumnToContents)
-        self.treeDroplets.customContextMenuRequested.connect(self.show_context_menu)
-        
         #Setup context menu for the droplets
         self.context_menu = QtWidgets.QMenu()
         self.context_menu.addAction(self.actionStart)
@@ -40,13 +40,14 @@ class DropletCommander(QtWidgets.QMainWindow, main_ui):
         self.load_api_key()
 
         #Get DigitalOcean manager object
-        DropletCommander.manager = digitalocean.Manager(token=DropletCommander.apikey)
+        self.get_manager()
 
         #Populate TreeWidget with droplet info
         self.list_droplets(DropletCommander.manager.get_all_droplets())
 
     def get_manager(self):
-        pass
+        
+        DropletCommander.manager = digitalocean.Manager(token=DropletCommander.apikey)
 
     def save_api_key(self):
         key = self.txtApiKey.text()
@@ -96,6 +97,10 @@ class DropletCommander(QtWidgets.QMainWindow, main_ui):
         #Adapt IP address column to content 
         self.treeDroplets.resizeColumnToContents(1)
 
+    def reload_droplet_tree(self):
+        self.treeDroplets.clear()
+        self.list_droplets(DropletCommander.manager.get_all_droplets())
+
     def show_context_menu(self, pos):
         pos = QtGui.QCursor.pos()
         pos.setX(pos.x() + 10)
@@ -107,20 +112,41 @@ class DropletCommander(QtWidgets.QMainWindow, main_ui):
         self.context_menu.exec_(pos)
 
     def get_droplet_id(self):
-        self.item = self.treeDroplets.currentItem()
-        if not self.item.parent():
-            self.id = self.item.child(0).text(0)
-            #Get only the droplet ID. So, cut off the label.
-            self.id = self.id[4:]
-            #print(self.id)
-            return self.id
+        item = self.treeDroplets.currentItem()
+        print(item)
+        if not item.parent():
+            id = item.child(0).text(0)
+            #We want only the droplet ID. So, cut off the label.
+            id = id[4:]
+            print(id)
+            return id
 
     def start_droplet(self):
+        id = str(self.get_droplet_id())
         print("Starting " + self.get_droplet_id())
-        DropletCommander.manager.
+        for droplet in DropletCommander.manager.get_all_droplets():
+            if str(droplet.id) == id:
+                droplet.power_on()
+                print("Reloading tree")
+                #TODO check status and update when started
+                self.reload_droplet_tree()
+        print("DONE starting " + id)
 
     def stop_droplet(self):
-        pass
+        id = str(self.get_droplet_id())
+        print("STOPPING " + id)
+        for droplet in DropletCommander.manager.get_all_droplets():
+            if str(droplet.id) == id:
+                print("Trying power_off")
+                print(droplet.power_off()["action"]["type"])
+                #for action in droplet.get_actions():
+                #    if action.type == "power_off":
+                #        print("found action power_off")
+                #        while str(action.status) != str("completed"):
+                #            pass
+                print("Reloading tree")
+                self.reload_droplet_tree()
+        print("DONE stopping " + id)
 
     def reboot_droplet(self):
         pass

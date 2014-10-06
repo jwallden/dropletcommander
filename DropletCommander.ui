@@ -42,17 +42,17 @@
      <attribute name="title">
       <string>Droplets</string>
      </attribute>
-     <widget class="QPushButton" name="pushButton">
+     <widget class="QPushButton" name="btnRefresh">
       <property name="geometry">
        <rect>
         <x>20</x>
         <y>220</y>
-        <width>85</width>
+        <width>111</width>
         <height>26</height>
        </rect>
       </property>
       <property name="text">
-       <string>Get Droplets</string>
+       <string>Refresh droplets</string>
       </property>
      </widget>
      <widget class="QTreeWidget" name="treeDroplets">
@@ -106,6 +106,19 @@
         <string>Region</string>
        </property>
       </column>
+     </widget>
+     <widget class="QPushButton" name="btnId">
+      <property name="geometry">
+       <rect>
+        <x>150</x>
+        <y>220</y>
+        <width>111</width>
+        <height>26</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Get droplet ID</string>
+      </property>
      </widget>
     </widget>
     <widget class="QWidget" name="tabSettings">
