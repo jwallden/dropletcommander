@@ -3,7 +3,7 @@
 from PyQt5 import QtCore, QtGui, QtWidgets, uic
 import digitalocean
 import sys
-import dcui
+import time
 
 main_ui = uic.loadUiType("DropletCommander.ui")[0]
 
@@ -15,7 +15,7 @@ class DropletCommander(QtWidgets.QMainWindow, main_ui):
 
     def __init__(self, parent=None):
         QtWidgets.QMainWindow.__init__(self, parent)
-        #self.ui = dcui.Ui_MainWindow()
+        
         #Setup signal and slots
         self.setupUi(self)
         self.btnSaveApiKey.clicked.connect(self.save_api_key)
@@ -102,14 +102,17 @@ class DropletCommander(QtWidgets.QMainWindow, main_ui):
         self.list_droplets(DropletCommander.manager.get_all_droplets())
 
     def show_context_menu(self, pos):
-        pos = QtGui.QCursor.pos()
-        pos.setX(pos.x() + 10)
-        print(self.treeDroplets.currentItem().child(1).text(0))
-        if self.treeDroplets.currentItem().child(1).text(0) == "Status: active":
-            self.context_menu.actions()[0].setEnabled(False)
-        else:
-            self.context_menu.actions()[0].setEnabled(True)
-        self.context_menu.exec_(pos)
+        item = self.treeDroplets.currentItem()
+
+        #Don't show context menu if a subitem is clicked.
+        if not item.parent():
+            pos = QtGui.QCursor.pos()
+            pos.setX(pos.x() + 10)
+            if item.child(1).text(0) == "Status: active":
+                self.context_menu.actions()[0].setEnabled(False)
+            else:
+                self.context_menu.actions()[0].setEnabled(True)
+            self.context_menu.exec_(pos)
 
     def get_droplet_id(self):
         item = self.treeDroplets.currentItem()
@@ -123,30 +126,33 @@ class DropletCommander(QtWidgets.QMainWindow, main_ui):
 
     def start_droplet(self):
         id = str(self.get_droplet_id())
-        print("Starting " + self.get_droplet_id())
-        for droplet in DropletCommander.manager.get_all_droplets():
-            if str(droplet.id) == id:
-                droplet.power_on()
-                print("Reloading tree")
-                #TODO check status and update when started
-                self.reload_droplet_tree()
-        print("DONE starting " + id)
+        print("Starting " + id)
+        droplet = DropletCommander.manager.get_droplet(id)
+        #Power on the droplet and record the action id
+        actionid = droplet.power_on()['action']['id']
+        action = DropletCommander.manager.get_action(actionid)
+        print(str(action.status))
+        print("SLEEPING")
+        
+        while str(action.status) != "completed":
+            action.load()
+            print(str(action.status))
+        
+        self.reload_droplet_tree()
 
     def stop_droplet(self):
         id = str(self.get_droplet_id())
         print("STOPPING " + id)
-        for droplet in DropletCommander.manager.get_all_droplets():
-            if str(droplet.id) == id:
-                print("Trying power_off")
-                print(droplet.power_off()["action"]["type"])
-                #for action in droplet.get_actions():
-                #    if action.type == "power_off":
-                #        print("found action power_off")
-                #        while str(action.status) != str("completed"):
-                #            pass
-                print("Reloading tree")
-                self.reload_droplet_tree()
-        print("DONE stopping " + id)
+        droplet = DropletCommander.manager.get_droplet(id)
+        
+        actionid = droplet.power_off()["action"]["id"]
+        action = DropletCommander.manager.get_action(actionid)
+
+        while str(action.status) != "completed":
+            action.load()
+            print(str(action.status))
+
+        self.reload_droplet_tree()
 
     def reboot_droplet(self):
         pass
