@@ -116,7 +116,6 @@ class DropletCommander(QtWidgets.QMainWindow, main_ui):
 
     def get_droplet_id(self):
         item = self.treeDroplets.currentItem()
-        print(item)
         if not item.parent():
             id = item.child(0).text(0)
             #We want only the droplet ID. So, cut off the label.
@@ -125,22 +124,43 @@ class DropletCommander(QtWidgets.QMainWindow, main_ui):
             return id
 
     def start_droplet(self):
-        id = str(self.get_droplet_id())
-        print("Starting " + id)
-        droplet = DropletCommander.manager.get_droplet(id)
-        #Power on the droplet and record the action id
-        actionid = droplet.power_on()['action']['id']
-        action = DropletCommander.manager.get_action(actionid)
-        print(str(action.status))
-        print("SLEEPING")
+        self.treeDroplets.setCursor(QtCore.Qt.BusyCursor)
+        try:
+            id = str(self.get_droplet_id())
+            print("Starting " + id)
+            droplet = DropletCommander.manager.get_droplet(id)
+            #Power on the droplet and record the action id
+            actionid = droplet.power_on()['action']['id']
+            action = DropletCommander.manager.get_action(actionid)
+            timenow = time.time()
+            timepassed = 0
+            timeout = False
+
+            while (str(action.status) != "completed" and timepassed <= 15):
+                action.load()
+                timepassed = time.time() - timenow
+                if timepassed >= 15:
+                    timeout = True
+
+            self.reload_droplet_tree()
+            if timeout:
+                msgbox = QtWidgets.QMessageBox()
+                msgbox.setIcon(3)
+                msgbox.setText("The action timed out. Please refresh the droplet list manually to check on droplet status")
+                msgbox.exec_()
+
+
+        except Exception as e:
+            print(e)
+            msgbox = QtWidgets.QMessageBox()
+            msgbox.setIcon(3)
+            msgbox.setText("Something went wrong")
+            msgbox.exec_()
         
-        while str(action.status) != "completed":
-            action.load()
-            print(str(action.status))
-        
-        self.reload_droplet_tree()
+        self.treeDroplets.unsetCursor()
 
     def stop_droplet(self):
+        self.treeDroplets.setCursor(QtCore.Qt.BusyCursor)
         id = str(self.get_droplet_id())
         print("STOPPING " + id)
         droplet = DropletCommander.manager.get_droplet(id)
@@ -153,6 +173,7 @@ class DropletCommander(QtWidgets.QMainWindow, main_ui):
             print(str(action.status))
 
         self.reload_droplet_tree()
+        self.treeDroplets.unsetCursor()
 
     def reboot_droplet(self):
         pass
